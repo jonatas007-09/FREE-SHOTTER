@@ -1,0 +1,261 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ZUMBI SHOTTER - Demo</title>
+    <style>
+        html, body { margin: 0; padding: 0; overflow: hidden; height: 100%; background: #87CEEB; }
+        #renderCanvas { width: 100%; height: 100%; touch-action: none; }
+        #joystickContainer {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 60px;
+            touch-action: none;
+            user-select: none;
+        }
+        #joystickThumb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 30px;
+            top: 30px;
+            left: 30px;
+            touch-action: none;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+
+    <!-- Joystick container -->
+    <div id="joystickContainer">
+        <div id="joystickThumb"></div>
+    </div>
+
+    <!-- Babylon.js CDN -->
+    <script src="https://cdn.babylonjs.com/babylon.js"></script>
+    <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+
+    <script>
+        const canvas = document.getElementById("renderCanvas");
+        const engine = new BABYLON.Engine(canvas, true);
+
+        let scene = new BABYLON.Scene(engine);
+        scene.clearColor = new BABYLON.Color3(0.53, 0.81, 0.92); // céu azul claro
+
+        // Camera com controles de toque
+        let camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 2, -8), scene);
+        camera.setTarget(new BABYLON.Vector3(0, 1, 0));
+        camera.attachControl(canvas, false);
+        camera.inertia = 0.9;
+        camera.angularSensibility = 1000;
+
+        // Luz
+        let light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
+        light.intensity = 0.9;
+
+        // Chão com textura de grama (simples cor verde escuro)
+        let ground = BABYLON.MeshBuilder.CreateGround("ground", {width: 40, height: 40, subdivisions: 4}, scene);
+        let groundMaterial = new BABYLON.StandardMaterial("groundMat", scene);
+        groundMaterial.diffuseColor = new BABYLON.Color3(0.1, 0.4, 0.1); // verde escuro
+        ground.material = groundMaterial;
+        ground.checkCollisions = true;
+
+        // Criar casa simples estilo Free Fire
+        function criarCasa(x, z) {
+            let casa = new BABYLON.MeshBuilder.CreateBox("casa", {height: 3, width: 4, depth: 5}, scene);
+            casa.position = new BABYLON.Vector3(x, 1.5, z);
+            let mat = new BABYLON.StandardMaterial("matCasa", scene);
+            mat.diffuseColor = new BABYLON.Color3(0.8, 0.7, 0.6);
+            casa.material = mat;
+            casa.checkCollisions = true;
+
+            // Porta (uma caixa menor)
+            let porta = BABYLON.MeshBuilder.CreateBox("porta", {height: 2, width: 1.2, depth: 0.2}, scene);
+            porta.position = new BABYLON.Vector3(x, 1, z + 2.6);
+            let matP = new BABYLON.StandardMaterial("matPorta", scene);
+            matP.diffuseColor = new BABYLON.Color3(0.3, 0.15, 0);
+            porta.material = matP;
+            porta.checkCollisions = true;
+
+            // Janelas (2 caixas)
+            let janela1 = BABYLON.MeshBuilder.CreateBox("janela1", {height: 1, width: 1, depth: 0.2}, scene);
+            janela1.position = new BABYLON.Vector3(x - 1.4, 2, z + 0.7);
+            let matJ = new BABYLON.StandardMaterial("matJanela", scene);
+            matJ.diffuseColor = new BABYLON.Color3(0.6, 0.8, 1);
+            janela1.material = matJ;
+
+            let janela2 = janela1.clone("janela2");
+            janela2.position = new BABYLON.Vector3(x + 1.4, 2, z + 0.7);
+
+            return casa;
+        }
+
+        // Criar algumas casas
+        criarCasa(6, 6);
+        criarCasa(-6, 6);
+        criarCasa(0, -6);
+
+        // Árvores: tronco grosso e folhas
+        function criarArvore(x, z) {
+            // Tronco
+            let tronco = BABYLON.MeshBuilder.CreateCylinder("tronco", {diameterTop: 0.7, diameterBottom: 0.9, height: 4}, scene);
+            tronco.position = new BABYLON.Vector3(x, 2, z);
+            let matT = new BABYLON.StandardMaterial("matTronco", scene);
+            matT.diffuseColor = new BABYLON.Color3(0.4, 0.25, 0.1);
+            tronco.material = matT;
+            tronco.checkCollisions = true;
+
+            // Folhas
+            let folhas = BABYLON.MeshBuilder.CreateSphere("folhas", {diameter: 3}, scene);
+            folhas.position = new BABYLON.Vector3(x, 4.5, z);
+            let matF = new BABYLON.StandardMaterial("matFolhas", scene);
+            matF.diffuseColor = new BABYLON.Color3(0.1, 0.6, 0.1);
+            folhas.material = matF;
+
+            folhas.checkCollisions = true;
+
+            return tronco;
+        }
+
+        criarArvore(8, 0);
+        criarArvore(-8, -4);
+        criarArvore(4, -10);
+
+        // Personagem: dois braços simples cubo na frente da câmera
+        let braçoEsq = BABYLON.MeshBuilder.CreateBox("braçoEsq", {height: 0.5, width: 1, depth: 0.5}, scene);
+        braçoEsq.parent = camera;
+        braçoEsq.position = new BABYLON.Vector3(-0.7, -0.7, 1);
+        let matBraçoE = new BABYLON.StandardMaterial("matBraçoE", scene);
+        matBraçoE.diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.4);
+        braçoEsq.material = matBraçoE;
+
+        let braçoDir = BABYLON.MeshBuilder.CreateBox("braçoDir", {height: 0.5, width: 1, depth: 0.5}, scene);
+        braçoDir.parent = camera;
+        braçoDir.position = new BABYLON.Vector3(0.7, -0.7, 1);
+        let matBraçoD = new BABYLON.StandardMaterial("matBraçoD", scene);
+        matBraçoD.diffuseColor = new BABYLON.Color3(0.8, 0.6, 0.4);
+        braçoDir.material = matBraçoD;
+
+        // Ativar colisões e gravidade
+        scene.gravity = new BABYLON.Vector3(0, -0.9, 0);
+        scene.collisionsEnabled = true;
+        camera.checkCollisions = true;
+        camera.applyGravity = true;
+        camera.ellipsoid = new BABYLON.Vector3(0.5, 1, 0.5);
+
+        // Movimentação com joystick virtual
+        let joystick = document.getElementById("joystickContainer");
+        let thumb = document.getElementById("joystickThumb");
+        let dragging = false;
+        let startX, startY;
+        let deltaX = 0, deltaY = 0;
+
+        joystick.addEventListener("pointerdown", (evt) => {
+            dragging = true;
+            startX = evt.clientX;
+            startY = evt.clientY;
+        });
+        window.addEventListener("pointerup", (evt) => {
+            dragging = false;
+            deltaX = 0;
+            deltaY = 0;
+            thumb.style.transform = `translate(0px, 0px)`;
+        });
+        window.addEventListener("pointermove", (evt) => {
+            if (!dragging) return;
+            deltaX = evt.clientX - startX;
+            deltaY = evt.clientY - startY;
+            let dist = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), 40);
+            let angle = Math.atan2(deltaY, deltaX);
+            let posX = Math.cos(angle) * dist;
+            let posY = Math.sin(angle) * dist;
+            thumb.style.transform = `translate(${posX}px, ${posY}px)`;
+        });
+
+        // Variáveis para movimentação
+        let moveSpeed = 0.1;
+        let rotationSpeed = 0.002;
+
+        // Controle do movimento
+        engine.runRenderLoop(() => {
+            if (deltaX !== 0 || deltaY !== 0) {
+                // Normaliza vetor do joystick
+                let length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                let nx = deltaX / length;
+                let ny = deltaY / length;
+
+                // Movimento do personagem: 
+                // deltaY negativo é pra frente, positivo trás
+                let forward = new BABYLON.Vector3(
+                    Math.sin(camera.rotation.y),
+                    0,
+                    Math.cos(camera.rotation.y)
+                );
+                // Para não andar invertido, ajusta vetor
+                forward = forward.negate();
+
+                let right = new BABYLON.Vector3(
+                    Math.sin(camera.rotation.y + Math.PI / 2),
+                    0,
+                    Math.cos(camera.rotation.y + Math.PI / 2)
+                );
+
+                let move = forward.scale(-ny * moveSpeed).add(right.scale(nx * moveSpeed));
+                camera.position.addInPlace(move);
+            }
+
+            scene.render();
+        });
+
+        // Permitir girar câmera com o dedo (2º dedo)
+        let pointerDown = false;
+        let lastX, lastY;
+        let pointers = [];
+
+        canvas.addEventListener("pointerdown", (evt) => {
+            pointers.push(evt.pointerId);
+            if (pointers.length == 2) {
+                pointerDown = true;
+                lastX = evt.clientX;
+                lastY = evt.clientY;
+            }
+        });
+
+        canvas.addEventListener("pointerup", (evt) => {
+            let index = pointers.indexOf(evt.pointerId);
+            if (index > -1) pointers.splice(index, 1);
+            if (pointers.length < 2) pointerDown = false;
+        });
+
+        canvas.addEventListener("pointermove", (evt) => {
+            if (!pointerDown) return;
+            if (pointers.indexOf(evt.pointerId) === -1) return;
+
+            let dx = evt.clientX - lastX;
+            let dy = evt.clientY - lastY;
+
+            camera.rotation.y -= dx * rotationSpeed;
+            camera.rotation.x -= dy * rotationSpeed;
+            if (camera.rotation.x < -Math.PI / 2) camera.rotation.x = -Math.PI / 2;
+            if (camera.rotation.x > Math.PI / 2) camera.rotation.x = Math.PI / 2;
+
+            lastX = evt.clientX;
+            lastY = evt.clientY;
+        });
+
+        // Ajustar tamanho da tela
+        window.addEventListener("resize", () => {
+            engine.resize();
+        });
+    </script>
+</body>
+</html>
